@@ -1,0 +1,202 @@
+#!/usr/bin/env dyalog
+
+⍝ ctx.apl
+⍝ Usage:
+⍝     ./ctx.apl .
+⍝     ./ctx.apl ./src
+
+⎕IO ← 1
+
+⍝ ─────────────────────────────────────────────
+⍝ Configuration
+⍝ ─────────────────────────────────────────────
+
+Marker ← '------------------ '
+
+⍝ Extensions that we consider text files.
+TextExtensions ← '.html' '.htm' '.py' '.js' '.ts' '.jsx' '.tsx'
+                '.css' '.scss' '.json' '.xml' '.yaml' '.yml'
+                '.md' '.txt' '.csv' '.sql' '.sh' '.c' '.h'
+                '.cpp' '.hpp' '.java' '.go' '.rs' '.rb' '.php'
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Get extension
+⍝ ─────────────────────────────────────────────
+
+GetExtension ← {
+    p ← ⍵
+    pos ← ⍸'.' = ⌽p
+    0=≢pos : ''
+    '.' , (pos ↑ ⌽p)
+}
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Human-readable type
+⍝ ─────────────────────────────────────────────
+
+GetType ← {
+    ext ← GetExtension ⍵
+
+    (ext='.html')∨(ext='.htm') : 'HTML'
+    ext='.py'                  : 'Python'
+    ext='.js'                  : 'JavaScript'
+    ext='.ts'                  : 'TypeScript'
+    ext='.jsx'                 : 'JavaScript JSX'
+    ext='.tsx'                 : 'TypeScript JSX'
+    ext='.css'                 : 'CSS'
+    ext='.json'                : 'JSON'
+    ext='.xml'                 : 'XML'
+    (ext='.yaml')∨(ext='.yml') : 'YAML'
+    ext='.md'                  : 'Markdown'
+    ext='.txt'                 : 'Plain Text'
+    ext='.csv'                 : 'CSV'
+    ext='.sql'                 : 'SQL'
+    ext='.sh'                  : 'Shell Script'
+    ext='.c'                   : 'C'
+    ext='.h'                   : 'C Header'
+    ext='.cpp'                 : 'C++'
+    ext='.hpp'                 : 'C++ Header'
+    ext='.java'                : 'Java'
+    ext='.go'                  : 'Go'
+    ext='.rs'                  : 'Rust'
+    ext='.rb'                  : 'Ruby'
+    ext='.php'                 : 'PHP'
+
+    'Unknown File'
+}
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Determine whether file is text
+⍝ ─────────────────────────────────────────────
+
+IsText ← {
+    ext ← GetExtension ⍵
+    ∨/ext∘≡¨TextExtensions
+}
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Read a text file
+⍝ ─────────────────────────────────────────────
+
+ReadText ← {
+    ⎕NGET ⍵ 1
+}
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Format file size
+⍝ ─────────────────────────────────────────────
+
+FormatSize ← {
+    bytes ← ⍵
+
+    bytes < 1024 :
+        (⍕bytes),' B'
+
+    bytes < 1024*1024 :
+        (⍕⌈bytes÷1024),' KB'
+
+    bytes < 1024*1024*1024 :
+        (⍕(100×bytes÷(1024*1024))÷100),' MB'
+
+    (⍕(100×bytes÷(1024*1024*1024))÷100),' GB'
+}
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Format one file
+⍝ ─────────────────────────────────────────────
+
+FormatFile ← {
+    file ← ⍵
+    id ← file[1]
+    path ← file[2]
+
+    info ← ⎕NINFO path
+    size ← info[3]
+
+    type ← GetType path
+
+    text ← IsText path
+    content ← text
+        / ReadText path
+        ,⊂'BINARY FILE'
+
+    lines ← text
+        / (≢content)
+        , 0
+
+    name ← (¯1 + ≢path)↑path
+
+    header ← Marker , (⍕id) , '::' , name
+
+    summary ← Marker , (⍕id) , '::' , name , '::SUMMARY'
+    begin   ← Marker , (⍕id) , '::' , name , '::BEGIN'
+    ending  ← Marker , (⍕id) , '::' , name , '::END'
+
+    summary
+    'PATH: ' , path
+    'TYPE: ' , type
+    'LINES: ' , (⍕lines)
+    'SIZE: ' , FormatSize size
+    begin
+    content
+    ending
+}
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Recursively find files
+⍝ ─────────────────────────────────────────────
+
+FindFiles ← {
+    root ← ⍵
+
+    entries ← ⎕NINFO root,''
+    
+    files ← ⍵
+    
+    children ← ⎕NINFO root,'*'
+
+    result ← ⍬
+
+    :For item :In children
+        path ← item[1]
+
+        :If item[2]=1
+            result ,← FindFiles path
+        :Else
+            result ,← ⊂path
+        :EndIf
+    :EndFor
+
+    result
+}
+
+
+⍝ ─────────────────────────────────────────────
+⍝ Main
+⍝ ─────────────────────────────────────────────
+
+Main ← {
+    root ← 1 ⎕ARG
+
+    files ← FindFiles root
+
+    ⍝ Give every file a sequential ID
+    ids ← ⍳≢files
+
+    indexed ← ids,[1.5] files
+
+    :For file :In indexed
+        FormatFile file
+        ''
+    :EndFor
+}
+
+
+Main

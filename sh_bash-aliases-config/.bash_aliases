@@ -13,6 +13,9 @@ alias mr='cd ~/projects/app_web_static_miguelrivas/'
 alias dev='cd ~/projects/'
 alias ys='yarn serve'
 
+alias android='~/apps/android-studio/bin/studio'
+alias drawer="apps"
+
 alias rst='exec bash -l'
 
 ENDFORMAT="\e[0m"

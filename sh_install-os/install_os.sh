@@ -28,7 +28,7 @@ screenkey \
 gparted \
 bc \
 ncdu \
-
+fastfetch \
 
 look in the web for the folloing:
 yazi \
